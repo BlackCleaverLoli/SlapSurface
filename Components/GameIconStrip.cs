@@ -23,7 +23,8 @@ internal readonly record struct GameIconStripSpec(
     string? EmptyText = null,
     EdgeFadeSpec? EdgeFade = null,
     bool Wrap = false,
-    float WrapRowGap = SlapPx.Space4
+    float WrapRowGap = SlapPx.Space4,
+    LabeledOutlineSpec? Outline = null
 );
 
 internal readonly record struct GameIconSpec(
@@ -47,6 +48,7 @@ internal readonly record struct GameIconStripResult(
     int HoveredIndex,
     int ClickedIndex,
     int DoubleClickedIndex,
+    int RightClickedIndex,
     bool TitleClicked,
     ControlResult LastResult
 );
@@ -119,12 +121,44 @@ internal static class GameIconStripComponent
                 currentY += height + rowGap;
             }
 
+            var outline = spec.Outline;
+            var hasOutline = false;
+
+            // 带标签外描边时，标签骑在分组顶边上、下半部伸进分组内；
+            // 预留的顶部空隙让"标签下半部 + 边框"与首行图标保持间距。
+            float outlineTopClearance = 0f;
+            if (outline is { Label: { } outlineLabel } && !string.IsNullOrWhiteSpace(outlineLabel) && spec.Items.Count > 0)
+            {
+                hasOutline = true;
+                using (Slap.PushFont(SlapFontSize.Small, SlapFontWeight.Bold))
+                {
+                    var labelSize = ImGui.CalcTextSize(outlineLabel);
+                    var offset = MetricsScope.ScalePadding(outline.Value.ResolvedLabelOffset);
+                    outlineTopClearance = labelSize.Y * 0.5f
+                        + offset.Y
+                        + MetricsScope.BorderThickness
+                        + MetricsScope.ScaleGap(SlapPx.Space4);
+                }
+                ImGui.Dummy(new Vector2(0f, outlineTopClearance));
+                currentY += outlineTopClearance;
+            }
+            var outlineMinY = currentY - outlineTopClearance;
+
             var itemAreaWidth = MathF.Max(0f, width);
             var x = itemOriginX;
             var hoveredIndex = -1;
             var clickedIndex = -1;
             var doubleClickedIndex = -1;
+            var rightClickedIndex = -1;
             var lastResult = default(ControlResult);
+
+            // 换行分组轮廓几何：已排满行的右缘固定，末行右缘决定 L 形缺口。
+            var groupMaxRight = itemOriginX;
+            var lastRowTop = currentY;
+            var lastRowRight = itemOriginX;
+            var firstIntermediateRight = float.NaN;
+            var rowsAllFull = true;
+            var rowTop = currentY;
 
             if (spec.Items.Count == 0 && !string.IsNullOrWhiteSpace(spec.EmptyText))
             {
@@ -144,8 +178,19 @@ internal static class GameIconStripComponent
 
                 if (x + itemW > itemOriginX + itemAreaWidth && x > itemOriginX)
                 {
+                    // 完成的一行必须整宽，否则混宽图标下的轮廓不适用 L 形。
+                    if (hasOutline)
+                    {
+                        var completedRight = x - gap;
+                        if (float.IsNaN(firstIntermediateRight))
+                            firstIntermediateRight = completedRight;
+                        else
+                            rowsAllFull &= MathF.Abs(firstIntermediateRight - completedRight) <= 0.5f;
+                    }
+
                     x = itemOriginX;
                     currentY += height + rowGap;
+                    rowTop = currentY;
                 }
 
                 var result = DrawItem(
@@ -162,8 +207,27 @@ internal static class GameIconStripComponent
                     clickedIndex = i;
                 if (result.DoubleClicked)
                     doubleClickedIndex = i;
+                if (result.RightClicked)
+                    rightClickedIndex = i;
 
+                groupMaxRight = MathF.Max(groupMaxRight, x + itemW);
+                lastRowTop = rowTop;
+                lastRowRight = x + itemW;
                 x += itemW + gap;
+            }
+
+            if (hasOutline && outline is { } outlineSpec)
+            {
+                LabeledOutlineDrawing.DrawWrappedGroupOverlay(
+                    drawList,
+                    new Vector2(itemOriginX, outlineMinY),
+                    groupMaxRight,
+                    lastRowTop,
+                    rowsAllFull ? lastRowRight : groupMaxRight,
+                    lastRowTop + height,
+                    outlineSpec,
+                    SlapCorners.ControlRadius
+                );
             }
 
             var totalHeight = currentY + height - initialOrigin.Y;
@@ -172,6 +236,7 @@ internal static class GameIconStripComponent
                 hoveredIndex,
                 clickedIndex,
                 doubleClickedIndex,
+                rightClickedIndex,
                 false,
                 lastResult
             );
@@ -332,6 +397,7 @@ internal static class GameIconStripComponent
             var hoveredIndex = -1;
             var clickedIndex = -1;
             var doubleClickedIndex = -1;
+            var rightClickedIndex = -1;
             var lastResult = default(ControlResult);
 
             if (spec.OverflowFade)
@@ -382,6 +448,8 @@ internal static class GameIconStripComponent
                     clickedIndex = i;
                 if (result.DoubleClicked)
                     doubleClickedIndex = i;
+                if (result.RightClicked)
+                    rightClickedIndex = i;
 
                 x += itemWidth + gap;
                 }
@@ -415,6 +483,7 @@ internal static class GameIconStripComponent
                 hoveredIndex,
                 clickedIndex,
                 doubleClickedIndex,
+                rightClickedIndex,
                 titleClicked,
                 lastResult
             );
@@ -649,7 +718,7 @@ internal static class GameIconStripComponent
         var rawClicked = ImGui.InvisibleButton($"##gameicon{index}", size);
         var itemMin = ImGui.GetItemRectMin();
         var itemMax = itemMin + size;
-        var ix = SlapInteraction.Capture(disabled, selected, rawClicked);
+        var ix = SlapInteraction.Capture(disabled, selected, rawClicked, captureRightClick: true);
         var drawList = ImGui.GetWindowDrawList();
         var textColor = ResolveTextColor(item.TextColor, ix.Disabled, ix.Selected);
 

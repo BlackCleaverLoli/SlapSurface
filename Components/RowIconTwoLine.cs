@@ -158,9 +158,16 @@ internal static class RowIconTwoLineComponent
         }
 
         var textMinX = gameIconMin.X + gameIconSize + gap;
+        // The icon is drawn inset inside its slot; mirror that inset on the text edge so
+        // clipped text stops at the same optical distance from the border as the icon.
+        var iconSlotInset =
+            GameIconComponent.IsAvailable(spec.GameIconId) || spec.Texture != null
+                ? GameIconComponent.ResolveSlotInset()
+                : 0f;
+        var textContentMaxX = MathF.Max(textMinX, context.ContentMax.X - iconSlotInset);
         var contentTextMaxX = spec.TextMaxX < float.MaxValue
-            ? MathF.Min(spec.TextMaxX, context.ContentMax.X)
-            : context.ContentMax.X;
+            ? MathF.Min(spec.TextMaxX, textContentMaxX)
+            : textContentMaxX;
         var textMaxX = contentTextMaxX;
         var trailingText = spec.TrailingText;
         Vector2 trailingSize = Vector2.Zero;

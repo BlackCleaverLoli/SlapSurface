@@ -186,7 +186,8 @@ public static float ResolveSplitButtonNaturalWidth(SplitButtonSpec spec) =>
 
     // --- GameIcon ---
 
-    public static GameIconStripResult GameIconStrip(GameIconStripSpec spec) => GameIconStripComponent.Draw(spec);
+    public static void UnitRows(UnitRowsSpec spec, Action<int, SurfaceRowContext> drawUnit) =>
+        UnitRowsComponent.Draw(spec, drawUnit);
 
     public static void GameIconStripAbsolute(
         GameIconStripSpec spec, ImDrawListPtr drawList, Vector2 origin, float width, float? height = null) =>

@@ -114,6 +114,12 @@ internal static class GameIconComponent
         Vector2 slotMax
     ) => ResolveIconRect(slotMin, slotMax, ControlFillRatio);
 
+    /// <summary>
+    /// Gap between an icon slot edge and the drawn icon, so callers can mirror the
+    /// icon's optical inset on the opposite content edge.
+    /// </summary>
+    internal static float ResolveSlotInset() => MetricsScope.Scale(ShadowPadding);
+
     internal static (Vector2 Min, Vector2 Max) ResolveIconRect(
         Vector2 slotMin,
         Vector2 slotMax,

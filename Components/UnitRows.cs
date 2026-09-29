@@ -65,7 +65,9 @@ internal static class UnitRowsComponent
             var rowGap = MetricsScope.ScaleGap(spec.RowGap);
             var unitPaddingX = MetricsScope.ScalePadding(UnitPaddingX);
             var bleed = MetricsScope.Scale(spec.OutlineBleedPadding);
-            var origin = ImGui.GetCursorScreenPos();
+            // 与 SurfaceList 一致：顶部预留描边所需的空隙，列表起步位置和滚动边界都稳定。
+            var origin = ImGui.GetCursorScreenPos()
+                + new Vector2(0f, LabeledOutlineDrawing.ResolveTopClearance());
             var width = MathF.Max(0f, ImGui.GetContentRegionAvail().X);
             var innerWidth = MathF.Max(0f, width - bleed * 2f);
 

@@ -64,6 +64,13 @@ internal static partial class Slap
 
     internal static Func<uint, bool, IDalamudTextureWrap?>? GameIconLoader =>
         _gameIconLoader;
+
+    /// <summary>
+    /// Item id hovered this frame, or 0. Consumes the value; the host calls it
+    /// once per frame after drawing its windows.
+    /// </summary>
+    public static uint TakeHoveredGameItemId() => SlapItemTooltip.Take();
+
     /// <summary>
     /// Resolve a <see cref="FontAwesomeIcon"/>? to (iconText, iconFont).
     /// Returns (null, null) when <paramref name="icon"/> is null.

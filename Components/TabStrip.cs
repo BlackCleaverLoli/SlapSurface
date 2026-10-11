@@ -421,8 +421,6 @@ internal static class TabStripComponent
         if (firstOverflowIndex >= spec.Tabs.Count)
             return;
 
-	        ImGui.SetNextWindowPos(buttonMin + new Vector2(0f, MetricsScope.UnitHeight * ButtonHeight));
-
 	        var rt = ThemeScope.Resolved;
 	        var measureItems = spec.Tabs
 	            .Skip(firstOverflowIndex)
@@ -438,6 +436,8 @@ internal static class TabStripComponent
 	                Variant: spec.Variant,
 	                Palette: rt.FlatPalette,
 	                MinWidthUnits: 1f,
+	                Anchor: buttonMin + new Vector2(0f, MetricsScope.UnitHeight * ButtonHeight),
+	                TriggerTopLeft: buttonMin,
 	                MeasureItems: measureItems
             )
         );

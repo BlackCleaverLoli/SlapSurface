@@ -482,8 +482,6 @@ internal static class SplitButtonComponent
         if (spec.Options == null || spec.Options.Count == 0)
             return;
 
-        ImGui.SetNextWindowPos(new Vector2(buttonMin.X, buttonMax.Y));
-
 	        var measureItems = spec.Options
 	            .Select(option => new PopupMeasureItem(
 	                option.Label ?? string.Empty,
@@ -496,7 +494,9 @@ internal static class SplitButtonComponent
         using var popup = PopupPanelComponent.Begin(new PopupPanelSpec(
 	            popupId, spec.Variant,
 	            MeasureItems: measureItems,
-	            MinWidthUnits: minWidthUnits));
+	            MinWidthUnits: minWidthUnits,
+	            Anchor: new Vector2(buttonMin.X, buttonMax.Y),
+	            TriggerTopLeft: buttonMin));
         if (!popup.IsOpen)
             return;
 

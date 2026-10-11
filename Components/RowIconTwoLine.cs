@@ -38,9 +38,13 @@ namespace SlapSurface;
 /// responsive-tooltip protocol is used: a clipped name shows the name above
 /// the tooltip, while an unclipped row shows only the tooltip.
 /// </para>
+/// <para>
+/// <see cref="GameItemId"/> publishes the hovered item for the host to present.
+/// </para>
 /// </summary>
 internal readonly record struct RowIconTwoLineSpec(
     uint GameIconId = 0,
+    uint GameItemId = 0,
     GameIconShape GameIconShape = GameIconShape.Standard,
     string Name = "",
     string? MetaText = null,
@@ -232,6 +236,8 @@ internal static class RowIconTwoLineComponent
                 drawList.PopClipRect();
             }
         }
+
+        SlapItemTooltip.Request(context.Hovered, spec.GameItemId);
 
         var tooltip = ResponsiveTooltip.Compose(
             textMetrics.IsLine1Clipped(MathF.Max(0f, textMaxX - textMinX)),

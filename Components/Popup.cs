@@ -26,6 +26,18 @@ internal readonly record struct PopupMeasureItem(
     bool HasTrailingIcon = false,
     bool IsSelected = false);
 
+/// <summary>
+/// Horizontal fallback for an anchored popup whose preferred side leaves the display.
+/// </summary>
+internal enum PopupOverflow
+{
+    /// <summary>Shift back inside the display, keeping the trigger-facing edge aligned.</summary>
+    Clamp,
+
+    /// <summary>Open on the opposite side of <see cref="PopupPanelSpec.TriggerTopLeft"/>.</summary>
+    Mirror,
+}
+
 internal readonly record struct PopupPanelSpec(
 	    ControlKey Key,
 	    Variant Variant = Variant.Base,
@@ -63,11 +75,18 @@ internal readonly record struct PopupPanelSpec(
     /// <summary>Optional screen-space position resolved by the owning trigger.</summary>
     Vector2? Anchor = null,
     /// <summary>
+    /// Which corner of the popup sits at <see cref="Anchor"/>. <c>(0, 0)</c> places the
+    /// top-left corner, <c>(1, 0)</c> the top-right and <c>(1, 1)</c> the bottom-right.
+    /// </summary>
+    Vector2 AnchorPivot = default,
+    /// <summary>
     /// Optional trigger top-left. When the popup cannot fit below
     /// <see cref="Anchor"/>, it flips upward so its bottom edge aligns with
     /// this point's Y.
     /// </summary>
     Vector2? TriggerTopLeft = null,
+    /// <summary>Horizontal fallback when the popup cannot open on its preferred side.</summary>
+    PopupOverflow Overflow = PopupOverflow.Clamp,
     /// <summary>Optional resolved popup width in scaled pixels.</summary>
     float ResolvedWidth = 0f,
     /// <summary>Whether opening the popup should move keyboard focus into it.</summary>
@@ -241,11 +260,14 @@ _submenuTriggerHovered = false;
         if (!submenuOpen)
             return new PopupPanelScope(false, false);
 
-        ImGui.SetNextWindowPos(
-            new Vector2(triggerResult.Max.X, triggerResult.Min.Y),
-            ImGuiCond.Always
+        var scope = PopupPanelComponent.Begin(
+            submenu with
+            {
+                Anchor = new Vector2(triggerResult.Max.X, triggerResult.Min.Y),
+                TriggerTopLeft = triggerResult.Min,
+                Overflow = PopupOverflow.Mirror,
+            }
         );
-        var scope = PopupPanelComponent.Begin(submenu);
         if (!scope.IsOpen)
             return scope;
 
@@ -427,6 +449,8 @@ internal static class PopupPanelComponent
                 : float.IsInfinity(maxHeight) ? 0f : maxHeight;
             var anchor = ResolveAnchoredPopupPos(
                 spec.Anchor.Value,
+                spec.AnchorPivot,
+                spec.Overflow,
                 spec.TriggerTopLeft,
                 popupWidth,
                 estimatedHeight
@@ -867,26 +891,37 @@ internal static class PopupPanelComponent
 
     private static Vector2 ResolveAnchoredPopupPos(
         Vector2 anchor,
+        Vector2 pivot,
+        PopupOverflow overflow,
         Vector2? triggerTopLeft,
         float width,
-        float estimatedHeight
+        float height
     )
     {
         var display = ImGui.GetIO().DisplaySize;
         var margin = MetricsScope.Scale(SlapPx.Space8);
-        var x = MathF.Max(margin, MathF.Min(anchor.X, display.X - width - margin));
-        var y = anchor.Y;
-        if (
-            estimatedHeight > 0f
-            && y + estimatedHeight > display.Y - margin
-            && triggerTopLeft is { } topLeft
-            && topLeft.Y - estimatedHeight >= margin
-        )
-        {
-            y = topLeft.Y - estimatedHeight;
-        }
+        // The pivot names the corner pinned to the anchor, so the popup grows away from
+        // it: towards the right edge when the pivot sits on the left, and the other way
+        // around. Only the edge it grows towards can overflow.
+        var x = anchor.X - width * pivot.X;
+        var overflows = pivot.X > 0.5f
+            ? x < margin
+            : x + width > display.X - margin;
+        if (overflow == PopupOverflow.Mirror && overflows && triggerTopLeft is { } mirror)
+            x = mirror.X - width * (1f - pivot.X);
 
-        return new Vector2(x, y);
+        var y = anchor.Y - height * pivot.Y;
+        if (
+            triggerTopLeft is { } above
+            && y + height > display.Y - margin
+            && above.Y - height >= margin
+        )
+            y = above.Y - height;
+
+        return new Vector2(
+            Math.Clamp(x, margin, MathF.Max(margin, display.X - width - margin)),
+            Math.Clamp(y, margin, MathF.Max(margin, display.Y - height - margin))
+        );
     }
 
 	    private readonly record struct PopupColors(

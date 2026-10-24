@@ -107,7 +107,9 @@ internal readonly record struct SurfaceRowContext(
     Vector4 Background,
     Vector4 Border,
     SurfaceRowIconActionState? IconAction,
-    int Index
+    int Index,
+    string? OutlineLabel = null,
+    bool OutlineLabelClipped = false
 )
 {
     public Vector2 Size => Max - Min;
@@ -259,7 +261,8 @@ internal static class SurfaceListComponent
             var outlineOverlays = new List<(
                 Vector2 Min,
                 Vector2 Max,
-                LabeledOutlineSpec Outline
+                LabeledOutlineSpec Outline,
+                Vector4 Background
             )>();
 
             if (bleedPadding > 0f)
@@ -300,14 +303,15 @@ internal static class SurfaceListComponent
             HoverArbitration.Current.FlushOutline(spec.Key, 1f);
 
             // Draw labeled outlines after the interaction outline flush.
-            foreach (var (min, max, outline) in outlineOverlays)
+            foreach (var (min, max, outline, background) in outlineOverlays)
             {
                 LabeledOutlineDrawing.DrawOverlay(
                     ImGui.GetWindowDrawList(),
                     min,
                     max,
                     outline,
-                    SlapCorners.ControlRadius
+                    SlapCorners.ControlRadius,
+                    background
                 );
             }
 
@@ -354,7 +358,7 @@ internal static class SurfaceListComponent
         Vector2 rowSize,
         Vector2 padding,
         SurfaceRowState rowState,
-        List<(Vector2 Min, Vector2 Max, LabeledOutlineSpec Outline)> outlineOverlays,
+        List<(Vector2 Min, Vector2 Max, LabeledOutlineSpec Outline, Vector4 Background)> outlineOverlays,
         TRow row,
         Action<T, int, TRow, SurfaceRowContext> drawRow)
     {
@@ -427,8 +431,15 @@ internal static class SurfaceListComponent
 
         // Keep the control border and interaction outline clear of the label.
         SlapOutlineCutout? cutout = null;
+        string? outlineLabel = null;
+        var outlineLabelClipped = false;
         if (rowState.Outline is { } outline && !string.IsNullOrWhiteSpace(outline.Label))
-            cutout = LabeledOutlineDrawing.ComputeLabelCutout(min, outline);
+        {
+            var layout = LabeledOutlineDrawing.ResolveLayout(min, max, outline);
+            cutout = layout.Cutout;
+            outlineLabel = outline.Label;
+            outlineLabelClipped = layout.IsTextClipped;
+        }
 
         if (rowState.Variant != Variant.FlatNoBorder)
         {
@@ -473,7 +484,9 @@ internal static class SurfaceListComponent
             background,
             border,
             iconAction,
-            index
+            index,
+            outlineLabel,
+            outlineLabelClipped
         );
 
         drawList.PushClipRect(contentMin, contentMax, true);
@@ -487,7 +500,7 @@ internal static class SurfaceListComponent
         }
 
         if (rowState.Outline is { } outlineSpec && !string.IsNullOrWhiteSpace(outlineSpec.Label))
-            outlineOverlays.Add((min, max, outlineSpec));
+            outlineOverlays.Add((min, max, outlineSpec, background));
     }
 
 }

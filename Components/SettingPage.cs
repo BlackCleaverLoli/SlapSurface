@@ -4,7 +4,6 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using SlapSurface.Metrics;
-using SlapSurface.Theme;
 
 namespace SlapSurface;
 

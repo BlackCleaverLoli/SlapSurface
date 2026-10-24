@@ -122,7 +122,7 @@ internal static class TextInputComponent
             var rounding = SlapCorners.ControlRadius;
             var cutout = spec.Outline is { } borderOutline
                 && !string.IsNullOrWhiteSpace(borderOutline.Label)
-                ? LabeledOutlineDrawing.ComputeLabelCutout(min, borderOutline)
+                ? LabeledOutlineDrawing.ResolveLayout(min, max, borderOutline).Cutout
                 : (SlapOutlineCutout?)null;
 
             // Resolve control-level colors: variant-aware background + border
@@ -355,7 +355,8 @@ internal static class TextInputComponent
                     min,
                     max,
                     overlayOutline,
-                    rounding
+                    rounding,
+                    background
                 );
             }
 

@@ -149,7 +149,8 @@ internal static class BadgeComponent
                     min,
                     max,
                     labeledOutline,
-                    rounding);
+                    rounding,
+                    palette.Base);
             }
             else
             {

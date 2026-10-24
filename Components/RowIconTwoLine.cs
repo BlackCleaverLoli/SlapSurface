@@ -243,6 +243,10 @@ internal static class RowIconTwoLineComponent
             textMetrics.IsLine1Clipped(MathF.Max(0f, textMaxX - textMinX)),
             spec.Name,
             spec.Tooltip);
+        tooltip = ResponsiveTooltip.Compose(
+            context.OutlineLabelClipped,
+            context.OutlineLabel,
+            tooltip);
         HoverArbitration.Current.TryShowTooltip(context.Hovered, tooltip, context.Min, context.Max);
     }
 

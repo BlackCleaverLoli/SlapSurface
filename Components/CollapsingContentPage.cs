@@ -143,7 +143,7 @@ internal static class CollapsingContentPageComponent
                    "##v3ContentPageScroll",
                    scrollHeight,
                    widthExtension: scrollExtension,
-                   drawEdgeFade: !hasFloatingCommand))
+                   drawEdgeFade: false))
         {
             if (resetScroll)
                 ImGui.SetScrollY(0f);
@@ -165,6 +165,13 @@ internal static class CollapsingContentPageComponent
                     zone.Background),
                 childMin,
                 childMax));
+
+            ScrollFade.DrawVertical(
+                childMin,
+                childMax,
+                drawBottom: !hasFloatingCommand
+                    || floatingCommand?.BackgroundMode
+                    == FloatingCommandBackgroundMode.None);
         }
 
         if (floatingCommand is { Draw: not null } command)

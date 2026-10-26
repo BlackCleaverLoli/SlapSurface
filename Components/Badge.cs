@@ -272,7 +272,8 @@ internal static class BadgeComponent
     /// <summary>
     /// Measure the preferred and structural-minimum widths for responsive layout.
     /// A badge with an icon can shrink to its icon form. A badge without an
-    /// icon keeps its natural width so it never becomes an empty square.
+    /// icon shrinks to one unit height; the label clips and fades, and the
+    /// tooltip carries the full text.
     /// </summary>
     public static ResponsiveWidthRange MeasureResponsiveWidth(BadgeSpec spec)
     {
@@ -294,7 +295,7 @@ internal static class BadgeComponent
         var hasIcon = hasGameIcon || !string.IsNullOrEmpty(iconText);
 
         if (!hasIcon)
-            return ResponsiveWidthRange.Create(fullWidth, 0f, fullWidth);
+            return ResponsiveWidthRange.Create(fullWidth, 0f, unit);
 
         // Minimum width (= icon-only collapsed state). For a leading game-icon
         // list the collapse target is one icon, which keeps the responsive

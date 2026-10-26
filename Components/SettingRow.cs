@@ -20,7 +20,8 @@ internal readonly record struct SettingRowSpec(
     float IndentUnits = 0f,
     float ControlWidthUnits = 0f,
     bool Disabled = false,
-    string? Description = null
+    string? Description = null,
+    TextSlot? LabelSemantic = null
 );
 
 /// <summary>
@@ -167,8 +168,9 @@ internal static class SettingRowComponent
             throw new ArgumentException("SettingRowSpec.Key.Value must not be empty.", nameof(spec));
 
         using var _hover = HoverArbitration.Push();
-        var layout = ComputeRowLayout(spec.Label, spec.IndentUnits, spec.ControlWidthUnits, spec.Disabled);
-        DrawLegacyLabel(layout, spec.Label, spec.Disabled);
+        var displayLabel = BuildDisplayLabel(spec.Label, spec.Tooltip);
+        var layout = ComputeRowLayout(displayLabel, spec.IndentUnits, spec.ControlWidthUnits, spec.Disabled);
+        DrawLegacyLabel(layout, displayLabel, spec.Disabled, spec.LabelSemantic);
 
         if (layout.ControlAvailable > 0f)
         {
@@ -184,7 +186,7 @@ internal static class SettingRowComponent
             }
         }
 
-        DrawTooltipAndAdvance(spec.Key, layout, spec.Tooltip, spec.Label);
+        DrawTooltipAndAdvance(spec.Key, layout, spec.Tooltip, displayLabel);
     }
 
     /// <summary>
@@ -524,7 +526,13 @@ internal static class SettingRowComponent
         }
 
         layout = layout with { RowHeight = rowHeight };
-        DrawLabelBlock(layout, displayLabel, description, textMaxX, spec.Disabled);
+        DrawLabelBlock(
+            layout,
+            displayLabel,
+            description,
+            textMaxX,
+            spec.Disabled,
+            spec.LabelSemantic);
         DrawTooltipAndAdvance(
             spec.Key,
             layout,
@@ -583,12 +591,17 @@ internal static class SettingRowComponent
             rowHeight);
     }
 
-    private static void DrawLegacyLabel(RowLayout layout, string? label, bool disabled)
+    private static void DrawLegacyLabel(
+        RowLayout layout,
+        string? label,
+        bool disabled,
+        TextSlot? semantic)
     {
         if (string.IsNullOrWhiteSpace(label))
             return;
 
-        var labelColor = ThemeScope.Resolved.Body;
+        var theme = ThemeScope.Resolved;
+        var labelColor = semantic.HasValue ? theme.GetTextSlot(semantic.Value) : theme.Body;
         if (disabled)
             labelColor.W *= SlapColor.DisabledAlpha;
         var labelY = layout.CursorStart.Y
@@ -630,13 +643,14 @@ internal static class SettingRowComponent
         string? label,
         string? description,
         float textMaxX,
-        bool disabled)
+        bool disabled,
+        TextSlot? semantic)
     {
         if (string.IsNullOrWhiteSpace(label))
             return;
 
         var theme = ThemeScope.Resolved;
-        var line1Color = theme.Body;
+        var line1Color = semantic.HasValue ? theme.GetTextSlot(semantic.Value) : theme.Body;
         if (disabled)
             line1Color.W *= SlapColor.DisabledAlpha;
 

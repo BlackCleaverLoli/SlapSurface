@@ -106,6 +106,64 @@ internal static class CollapsingHeaderDetailPageComponent
 
         var savedCursor = ImGui.GetCursorScreenPos();
         ImGui.SetCursorScreenPos(zone.Min);
+
+        if (spec.ForceCollapsed)
+        {
+            var headerZone = new ContentZoneContext(
+                zone.Min,
+                new Vector2(zone.Max.X, zone.Min.Y + collapsedHeaderHeight),
+                zone.Background);
+            DrawFloatingHeader(
+                headerZone,
+                spec,
+                collapsedHeaderHeight,
+                collapsedIdentityHeight,
+                1f,
+                mediaTextGap,
+                identityActionGap,
+                hasSummary,
+                drawMedia,
+                collectTitleControls,
+                collectActions);
+
+            var scrollTop = zone.Min.Y + collapsedHeaderHeight;
+            var scrollHeight = MathF.Max(0f, zone.Max.Y - scrollTop);
+            if (scrollHeight > 0f)
+            {
+                ImGui.SetCursorScreenPos(new Vector2(zone.Min.X, scrollTop));
+                using (zone.ScrollArea(
+                           $"##{spec.Key.Value}Content",
+                           scrollHeight,
+                           widthExtension: scrollExtension,
+                           drawEdgeFade: false))
+                {
+                    if (spec.ResetScroll)
+                        ImGui.SetScrollY(0f);
+
+                    var childMin = ImGui.GetWindowPos();
+                    var childMax = childMin + ImGui.GetWindowSize();
+                    var contentMin = ImGui.GetCursorScreenPos();
+                    drawContent(new ContentZoneContext(
+                        contentMin,
+                        new Vector2(zone.Max.X, contentMin.Y + scrollHeight),
+                        zone.Background));
+
+                    ScrollFade.DrawVertical(
+                        childMin,
+                        childMax,
+                        drawBottom: !hasFloatingCommand
+                            || floatingCommand?.BackgroundMode
+                            == FloatingCommandBackgroundMode.None);
+                }
+            }
+
+            if (floatingCommand is { Draw: not null } collapsedCommand)
+                FloatingCommandComponent.DrawOverlay(zone, collapsedCommand);
+
+            ImGui.SetCursorScreenPos(savedCursor + new Vector2(0f, zone.Height));
+            return;
+        }
+
         using (zone.ScrollArea(
                    $"##{spec.Key.Value}Content",
                    widthExtension: scrollExtension,
@@ -115,9 +173,7 @@ internal static class CollapsingHeaderDetailPageComponent
                 ImGui.SetScrollY(0f);
 
             var scrollY = spec.ResetScroll ? 0f : ImGui.GetScrollY();
-            var consumedScroll = spec.ForceCollapsed
-                ? collapseDistance
-                : Math.Clamp(scrollY, 0f, collapseDistance);
+            var consumedScroll = Math.Clamp(scrollY, 0f, collapseDistance);
             var collapseProgress = collapseDistance > 0f
                 ? consumedScroll / collapseDistance
                 : 1f;
@@ -126,9 +182,7 @@ internal static class CollapsingHeaderDetailPageComponent
             var childMin = ImGui.GetWindowPos();
             var childMax = childMin + ImGui.GetWindowSize();
 
-            ImGui.Dummy(new Vector2(
-                zone.Width,
-                spec.ForceCollapsed ? collapsedHeaderHeight : expandedHeaderHeight));
+            ImGui.Dummy(new Vector2(zone.Width, expandedHeaderHeight));
             var contentMin = ImGui.GetCursorScreenPos();
             drawContent(new ContentZoneContext(
                 contentMin,
@@ -142,7 +196,9 @@ internal static class CollapsingHeaderDetailPageComponent
                 new Vector2(childMin.X, childMin.Y + headerHeight),
                 childMax,
                 drawTop: scrollY > collapseDistance,
-                drawBottom: !hasFloatingCommand);
+                drawBottom: !hasFloatingCommand
+                    || floatingCommand?.BackgroundMode
+                    == FloatingCommandBackgroundMode.None);
 
             DrawFloatingHeader(
                 zone,

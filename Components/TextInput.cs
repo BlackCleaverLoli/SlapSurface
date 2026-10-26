@@ -401,7 +401,9 @@ internal static class TextInputComponent
         var contentWidth = ResolvePlaceholderContentWidth(spec);
         var preferredBaseline = MetricsScope.UnitWidth
             * (spec.WidthUnits > 0f ? spec.WidthUnits : 2f);
-        var minimumWidth = hasIcon ? h : MetricsScope.UnitWidth * 2f;
+        var minimumWidth = hasIcon
+            ? h
+            : MetricsScope.UnitWidth * (spec.Clearable ? 2f : 1f);
         return ResponsiveWidthRange.Create(contentWidth, preferredBaseline, minimumWidth);
     }
 

@@ -296,9 +296,12 @@ internal sealed class SlapWindowResizeHandler
     // The window being NoResize keeps ImGui from reporting the overhang band as
     // hovered, so also accept the edge/corner hit when nothing else is under the
     // cursor (no window claims the point, e.g. the frosted backdrop overhang).
+    // Popups opened from this window are part of its popup hierarchy, so the
+    // child-window checks would report them as this window's own hover; a popup
+    // covering the edge must not hand the pointer to resize.
     private static bool CanUseManualResizeHit() =>
-        ImGui.IsWindowHovered(ImGuiHoveredFlags.RootAndChildWindows)
-        || ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows)
+        ImGui.IsWindowHovered(ImGuiHoveredFlags.RootAndChildWindows | ImGuiHoveredFlags.NoPopupHierarchy)
+        || ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows | ImGuiFocusedFlags.NoPopupHierarchy)
         || !ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow);
 
     private static ImGuiMouseCursor GetResizeCursor(SlapResizeEdge edge)

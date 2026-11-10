@@ -16,7 +16,7 @@ internal enum SlapTooltipDirection
 
 internal static class SlapTooltip
 {
-    private const float TooltipGap = SlapPx.Space4;
+    private const float TooltipGap = SlapPx.Space6;
 
     private static readonly Vector2 Padding = new(SlapPx.Space9, SlapPx.Space5);
     private static readonly LayeredShadowSpec DefaultShadow =
@@ -89,8 +89,7 @@ internal static class SlapTooltip
             windowPadding.Y);
         var border = MetricsScope.BorderThickness;
         var tooltipSize = ImGui.CalcTextSize(text)
-            + (windowPadding * 2f)
-            + new Vector2(border * 2f, border * 2f);
+            + (windowPadding * 2f);
         var viewport = ResolveViewportBounds();
         var position = ResolveTooltipPosition(
             hoverMin,
@@ -108,6 +107,7 @@ internal static class SlapTooltip
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, SlapCorners.ControlRadius);
 
         ImGui.SetNextWindowPos(position, ImGuiCond.Always);
+        ImGui.SetNextWindowSize(tooltipSize, ImGuiCond.Always);
         ImGuiP.BeginTooltipEx(ImGuiTooltipFlags.OverridePreviousTooltip, ImGuiWindowFlags.None);
         var drawList = ImGui.GetWindowDrawList();
         drawList.ChannelsSplit(2);
